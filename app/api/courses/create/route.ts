@@ -4,14 +4,14 @@ import cloudinary from "@/lib/cloudinary";
 import ConnectToDatabase from "@/lib/database";
 import Course from "@/models/Course";
 
-export const runtime = "nodejs"; // Use Node runtime to avoid serverless timeout
-export const maxDuration = 120; // max 2 minutes
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
-/* ========== HELPER: CLOUDINARY UPLOAD ========== */
+/* ========= CLOUDINARY UPLOAD ========= */
 const uploadToCloudinary = (
   buffer: Buffer,
   folder: string,
-  resource_type: "image" | "video" | "raw",
+  resource_type: "image" | "video" | "raw"
 ) => {
   return new Promise<any>((resolve, reject) => {
     cloudinary.uploader
@@ -23,17 +23,16 @@ const uploadToCloudinary = (
   });
 };
 
-/* ========== POST CREATE COURSE ========== */
+/* ========= POST CREATE COURSE ========= */
 export async function POST(req: Request) {
   try {
     await ConnectToDatabase();
-
     const formData = await req.formData();
 
     /* ===== BASIC FIELDS ===== */
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
-    const teacherId = formData.get("teacher") as string; // MUST be ObjectId
+    const teacherId = formData.get("teacher") as string;
     const education = formData.get("education") as "General" | "Azher";
     const grade = formData.get("grade") as
       | "Grade 9"
@@ -52,63 +51,104 @@ export async function POST(req: Request) {
     if (!imageFile) {
       return NextResponse.json({ message: "Image required" }, { status: 400 });
     }
+
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-    const imageUpload = await uploadToCloudinary(
+    const imageUploadPromise = uploadToCloudinary(
       imageBuffer,
       "courses/images",
-      "image",
+      "image"
     );
 
     /* ===== VIDEOS ===== */
-    const videos: any[] = [];
+    const videoUploadPromises: Promise<any>[] = [];
+    const videosMeta: any[] = [];
     let videoIndex = 0;
-    while (formData.get(`videos[${videoIndex}][title]`)) {
-      const title = formData.get(`videos[${videoIndex}][title]`) as string;
-      const order = Number(formData.get(`videos[${videoIndex}][order]`));
-      const file = formData.get(`videos[${videoIndex}][file]`) as File | null;
 
-      let videoUrl = "";
+    while (formData.get(`videos[${videoIndex}][title]`)) {
+      const vTitle = formData.get(
+        `videos[${videoIndex}][title]`
+      ) as string;
+      const order = Number(
+        formData.get(`videos[${videoIndex}][order]`)
+      );
+      const file = formData.get(
+        `videos[${videoIndex}][file]`
+      ) as File | null;
+
       if (file) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const upload = await uploadToCloudinary(
-          buffer,
-          "courses/videos",
-          "video",
+        const uploadPromise = file.arrayBuffer().then((ab) =>
+          uploadToCloudinary(
+            Buffer.from(ab),
+            "courses/videos",
+            "video"
+          )
         );
-        videoUrl = upload.secure_url;
+        videoUploadPromises.push(uploadPromise);
+        videosMeta.push({ title: vTitle, order });
       }
 
-      videos.push({ title, order, videoUrl });
       videoIndex++;
     }
 
-    /* ===== PDFs ===== */
-    const pdfs: any[] = [];
+    /* ===== PDFS ===== */
+    const pdfUploadPromises: Promise<any>[] = [];
+    const pdfsMeta: any[] = [];
     let pdfIndex = 0;
-    while (formData.get(`pdfs[${pdfIndex}][title]`)) {
-      const title = formData.get(`pdfs[${pdfIndex}][title]`) as string;
-      const order = Number(formData.get(`pdfs[${pdfIndex}][order]`));
-      const file = formData.get(`pdfs[${pdfIndex}][file]`) as File | null;
 
-      let pdfUrl = "";
+    while (formData.get(`pdfs[${pdfIndex}][title]`)) {
+      const pTitle = formData.get(
+        `pdfs[${pdfIndex}][title]`
+      ) as string;
+      const order = Number(
+        formData.get(`pdfs[${pdfIndex}][order]`)
+      );
+      const file = formData.get(
+        `pdfs[${pdfIndex}][file]`
+      ) as File | null;
+
       if (file) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const upload = await uploadToCloudinary(buffer, "courses/pdfs", "raw");
-        pdfUrl = upload.secure_url;
+        const uploadPromise = file.arrayBuffer().then((ab) =>
+          uploadToCloudinary(
+            Buffer.from(ab),
+            "courses/pdfs",
+            "raw"
+          )
+        );
+        pdfUploadPromises.push(uploadPromise);
+        pdfsMeta.push({ title: pTitle, order });
       }
 
-      pdfs.push({ title, order, pdfUrl });
       pdfIndex++;
     }
 
     /* ===== QUIZZES ===== */
-    const quizzes = JSON.parse((formData.get("quizzes") as string) || "[]");
+    const quizzes = JSON.parse(
+      (formData.get("quizzes") as string) || "[]"
+    );
 
-    /* ===== SAVE COURSE ===== */
+    /* ===== PARALLEL EXECUTION ===== */
+    const [imageUpload, videoUploads, pdfUploads] = await Promise.all([
+      imageUploadPromise,
+      Promise.all(videoUploadPromises),
+      Promise.all(pdfUploadPromises),
+    ]);
+
+    /* ===== MERGE RESULTS ===== */
+    const videos = videosMeta.map((v, i) => ({
+      ...v,
+      videoUrl: videoUploads[i]?.secure_url || "",
+    }));
+
+    const pdfs = pdfsMeta.map((p, i) => ({
+      ...p,
+      pdfUrl: pdfUploads[i]?.secure_url || "",
+    }));
+
+    /* ===== SAVE ===== */
     const course = await Course.create({
       title,
       description,
-      teacher: new mongoose.Types.ObjectId(teacherId), // convert to ObjectId
+      teacher: new mongoose.Types.ObjectId(teacherId),
       education,
       grade,
       price,
@@ -120,11 +160,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, course });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     return NextResponse.json(
-      { message: "Internal Server Error", error: (error as any).message },
-      { status: 500 },
+      { message: "Internal Server Error", error: error.message },
+      { status: 500 }
     );
   }
 }

@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Edit, Eye, Plus, Trash } from "lucide-react";
+import { LoaderCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -40,7 +40,7 @@ interface Quiz {
 interface CourseForm {
   title: string;
   description: string;
-  teacher: string; // will store teacher's _id
+  teacher: string;
   education: "General" | "Azher";
   grade: "Grade 9" | "Grade 10" | "Grade 11" | "Grade 12";
   price: number;
@@ -62,7 +62,6 @@ interface Course {
   education: string;
   grade: string;
   price: number;
-  isPublished: boolean;
 }
 
 /* ================= COMPONENT ================= */
@@ -72,6 +71,7 @@ export default function Page() {
   const [image, setImage] = useState<File | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [formLoading, setFormLoading] = useState(false);
 
   const [form, setForm] = useState<CourseForm>({
     title: "",
@@ -86,7 +86,7 @@ export default function Page() {
     quizzes: [],
   });
 
-  /* ================= FETCH TEACHERS ================= */
+  /* ================= FETCH DATA ================= */
 
   useEffect(() => {
     getAllTeachers();
@@ -97,10 +97,19 @@ export default function Page() {
     try {
       const res = await fetch("/api/teachers/all");
       const data = await res.json();
-      if (!data.success) throw data.message;
       setTeachers(data.allTeachers);
     } catch {
       toast.error("Failed to load teachers");
+    }
+  };
+
+  const getAllCourses = async () => {
+    try {
+      const res = await fetch("/api/courses/all");
+      const data = await res.json();
+      setCourses(data.allcourses);
+    } catch {
+      toast.error("Failed to load courses");
     }
   };
 
@@ -138,15 +147,16 @@ export default function Page() {
   /* ================= SUBMIT ================= */
 
   const handleSubmit = async () => {
+    if (!image) return toast.error("Course image required");
+    if (!form.teacher) return toast.error("Select a teacher");
+
     try {
-      if (!image) return toast.error("Course image required");
-      if (!form.teacher) return toast.error("Select a teacher");
+      setFormLoading(true);
 
       const fd = new FormData();
-
       fd.append("title", form.title);
       fd.append("description", form.description);
-      fd.append("teacher", form.teacher); // send teacher _id
+      fd.append("teacher", form.teacher);
       fd.append("education", form.education);
       fd.append("grade", form.grade);
       fd.append("price", String(form.price));
@@ -172,10 +182,11 @@ export default function Page() {
         body: fd,
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Failed");
 
-      toast.success("Course created successfully");
+      toast.success("Course created");
       setOpen(false);
+      setImage(null);
       setForm({
         title: "",
         description: "",
@@ -188,20 +199,12 @@ export default function Page() {
         pdfs: [],
         quizzes: [],
       });
-      setImage(null);
+
+      getAllCourses();
     } catch {
       toast.error("Failed to create course");
-    }
-  };
-
-  const getAllCourses = async () => {
-    try {
-      const res = await fetch("/api/courses/all");
-      const data = await res.json();
-      if (!data.success) throw data.message;
-      setCourses(data?.allcourses);
-    } catch {
-      toast.error("Failed to load courses");
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -214,7 +217,8 @@ export default function Page() {
           <DialogHeader>
             <DialogTitle>Create Course</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="h-56 overflow-y-scroll">
+
+          <ScrollArea className="h-96">
             <div className="space-y-3">
               <input
                 className="border p-2 w-full"
@@ -232,7 +236,6 @@ export default function Page() {
                 }
               />
 
-              {/* Teacher dropdown */}
               <select
                 className="border p-2 w-full"
                 value={form.teacher}
@@ -262,9 +265,11 @@ export default function Page() {
                 }
               />
 
-              <Button onClick={addVideo} variant="outline">
+              {/* ===== BUTTONS ===== */}
+              <Button type="button" onClick={addVideo} variant="outline">
                 + Video
               </Button>
+
               {form.videos.map((v, i) => (
                 <div key={i} className="border p-2">
                   <input
@@ -289,9 +294,10 @@ export default function Page() {
                 </div>
               ))}
 
-              <Button onClick={addPDF} variant="outline">
+              <Button type="button" onClick={addPDF} variant="outline">
                 + PDF
               </Button>
+
               {form.pdfs.map((p, i) => (
                 <div key={i} className="border p-2">
                   <input
@@ -316,9 +322,10 @@ export default function Page() {
                 </div>
               ))}
 
-              <Button onClick={addQuiz} variant="outline">
+              <Button type="button" onClick={addQuiz} variant="outline">
                 + Quiz
               </Button>
+
               {form.quizzes.map((q, qi) => (
                 <div key={qi} className="border p-3">
                   <input
@@ -331,50 +338,27 @@ export default function Page() {
                       setForm({ ...form, quizzes: qs });
                     }}
                   />
-                  {q.questions.map((qq, qqi) => (
-                    <div key={qqi} className="mb-2">
-                      <input
-                        className="border p-2 w-full mb-1"
-                        placeholder="Question"
-                        value={qq.question}
-                        onChange={(e) => {
-                          const qs = [...form.quizzes];
-                          qs[qi].questions[qqi].question = e.target.value;
-                          setForm({ ...form, quizzes: qs });
-                        }}
-                      />
-                      {qq.options.map((opt, oi) => (
-                        <input
-                          key={oi}
-                          className="border p-2 w-full mb-1"
-                          placeholder={`Option ${oi + 1}`}
-                          value={opt}
-                          onChange={(e) => {
-                            const qs = [...form.quizzes];
-                            qs[qi].questions[qqi].options[oi] = e.target.value;
-                            setForm({ ...form, quizzes: qs });
-                          }}
-                        />
-                      ))}
-                      <input
-                        className="border p-2 w-full"
-                        placeholder="Correct answer"
-                        value={qq.correctAnswer}
-                        onChange={(e) => {
-                          const qs = [...form.quizzes];
-                          qs[qi].questions[qqi].correctAnswer = e.target.value;
-                          setForm({ ...form, quizzes: qs });
-                        }}
-                      />
-                    </div>
-                  ))}
-                  <Button size="sm" onClick={() => addQuestion(qi)}>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => addQuestion(qi)}
+                  >
                     + Question
                   </Button>
                 </div>
               ))}
 
-              <Button onClick={handleSubmit}>Submit</Button>
+              <Button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={formLoading}
+              >
+                {formLoading && (
+                  <LoaderCircle size={18} className="animate-spin mr-2" />
+                )}
+                Submit
+              </Button>
             </div>
           </ScrollArea>
         </DialogContent>
@@ -383,13 +367,12 @@ export default function Page() {
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-bold">All Courses</h1>
         <Button onClick={() => setOpen(true)}>
-          <Plus className="mr-2" size={18} />
-          Course
+          <Plus size={18} className="mr-2" /> Course
         </Button>
       </div>
 
       <ScrollArea className="border rounded-lg">
-        <table className="w-full text-left">
+        <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="p-3 border-b">Title</th>
@@ -400,13 +383,13 @@ export default function Page() {
             </tr>
           </thead>
           <tbody>
-            {courses?.map((c) => (
-              <tr key={c._id} className="hover:bg-gray-50 transition">
+            {courses.map((c) => (
+              <tr key={c._id}>
                 <td className="p-3 border-b">{c.title}</td>
                 <td className="p-3 border-b">{c.teacherName}</td>
                 <td className="p-3 border-b">{c.education}</td>
                 <td className="p-3 border-b">{c.grade}</td>
-                <td className="p-3 border-b">EGP{c.price.toFixed(2)}</td>
+                <td className="p-3 border-b">EGP {c.price.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
