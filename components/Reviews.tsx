@@ -1,38 +1,41 @@
 import React from "react";
 import Image from "next/image";
+import { useLang } from "@/context/LanguageContext";
 
 const reviews = [
   {
     name: "Ahmed Mohamed",
     grade: "Secondary 3 – General Education",
     review:
-      "The lessons are very clear and helped me understand grammar better. My exam results improved a lot.",
+    "The lessons are very clear and helped me understand grammar better. My exam results improved a lot.",
     image:
-      "https://images.unsplash.com/photo-1527980965255-d3b416303d12",
+    "https://images.unsplash.com/photo-1527980965255-d3b416303d12",
   },
   {
     name: "Sara Hassan",
     grade: "Preparatory – Azhar",
     review:
-      "The explanations are simple and match the Azhar curriculum exactly. I finally feel confident in English.",
+    "The explanations are simple and match the Azhar curriculum exactly. I finally feel confident in English.",
     image:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2",
   },
   {
     name: "Omar Ali",
     grade: "Secondary – Azhar",
     review:
-      "Very organized platform. I know exactly what to study before exams.",
+    "Very organized platform. I know exactly what to study before exams.",
     image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
   },
 ];
 
+
 const StudentReviews = () => {
+  const { t } = useLang();
   return (
     <section className="px-12 mt-4 py-20 bg-zinc-50">
       <h2 className="text-2xl font-medium text-zinc-900 text-center">
-        What Our Students Say
+        {t("woss")}
       </h2>
 
       <div className="mt-10 flex gap-6 flex-wrap justify-center">

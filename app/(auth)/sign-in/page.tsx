@@ -149,13 +149,18 @@ const page = () => {
           >
             {loading ? "Loging In..." : "Log In."}
           </Button>
-
+            <div className="flex items-center flex-row justify-between">
           <p className="text-xs text-black/60">
             Don't Have an Account{" "}
             <Link href="/sign-up" className="underline text-black">
               Sign Up
             </Link>
           </p>
+
+          <Link href="/forget-password" className="underline text-sm text-black">
+              Forget Password.
+            </Link>
+            </div>
         </form>
       </Form>
     </div>

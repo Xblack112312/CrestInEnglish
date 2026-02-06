@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { LoaderCircle, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, LoaderCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -146,6 +146,32 @@ export default function Page() {
 
   /* ================= SUBMIT ================= */
 
+  const DeleteCourse = async (id: string) => {
+    try {
+      const response = await fetch("/api/courses/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      const data = await response?.json();
+
+      if (data?.success) {
+        toast.success("Course Deleted Successfully.");
+        return;
+      } else {
+        toast.error(data?.message);
+        return;
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(String(error));
+      return;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!image) return toast.error("Course image required");
     if (!form.teacher) return toast.error("Select a teacher");
@@ -208,193 +234,272 @@ export default function Page() {
     }
   };
 
+  const [ExpandBasic, setExpandBasic] = useState(true);
+  const [ExpandContent, setExpandContent] = useState(false);
+
   /* ================= UI ================= */
 
   return (
-    <div className="w-full">
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create Course</DialogTitle>
-          </DialogHeader>
-
-          <ScrollArea className="h-96">
-            <div className="space-y-3">
-              <input
-                className="border p-2 w-full"
-                placeholder="Title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-              />
-
-              <textarea
-                className="border p-2 w-full"
-                placeholder="Description"
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-              />
-
-              <select
-                className="border p-2 w-full"
-                value={form.teacher}
-                onChange={(e) => setForm({ ...form, teacher: e.target.value })}
-              >
-                <option value="">Select teacher</option>
-                {teachers.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImage(e.target.files?.[0] || null)}
-              />
-
-              <input
-                type="number"
-                className="border p-2 w-full"
-                placeholder="Price"
-                value={form.price}
-                onChange={(e) =>
-                  setForm({ ...form, price: Number(e.target.value) })
-                }
-              />
-
-              {/* ===== BUTTONS ===== */}
-              <Button type="button" onClick={addVideo} variant="outline">
-                + Video
-              </Button>
-
-              {form.videos.map((v, i) => (
-                <div key={i} className="border p-2">
-                  <input
-                    className="border p-2 w-full mb-2"
-                    placeholder="Video title"
-                    value={v.title}
-                    onChange={(e) => {
-                      const vids = [...form.videos];
-                      vids[i].title = e.target.value;
-                      setForm({ ...form, videos: vids });
-                    }}
-                  />
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => {
-                      const vids = [...form.videos];
-                      vids[i].file = e.target.files?.[0];
-                      setForm({ ...form, videos: vids });
-                    }}
-                  />
-                </div>
-              ))}
-
-              <Button type="button" onClick={addPDF} variant="outline">
-                + PDF
-              </Button>
-
-              {form.pdfs.map((p, i) => (
-                <div key={i} className="border p-2">
-                  <input
-                    className="border p-2 w-full mb-2"
-                    placeholder="PDF title"
-                    value={p.title}
-                    onChange={(e) => {
-                      const pdfs = [...form.pdfs];
-                      pdfs[i].title = e.target.value;
-                      setForm({ ...form, pdfs });
-                    }}
-                  />
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => {
-                      const pdfs = [...form.pdfs];
-                      pdfs[i].file = e.target.files?.[0];
-                      setForm({ ...form, pdfs });
-                    }}
-                  />
-                </div>
-              ))}
-
-              <Button type="button" onClick={addQuiz} variant="outline">
-                + Quiz
-              </Button>
-
-              {form.quizzes.map((q, qi) => (
-                <div key={qi} className="border p-3">
-                  <input
-                    className="border p-2 w-full mb-2"
-                    placeholder="Quiz title"
-                    value={q.title}
-                    onChange={(e) => {
-                      const qs = [...form.quizzes];
-                      qs[qi].title = e.target.value;
-                      setForm({ ...form, quizzes: qs });
-                    }}
-                  />
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => addQuestion(qi)}
-                  >
-                    + Question
-                  </Button>
-                </div>
-              ))}
-
-              <Button
-                type="submit"
-                onClick={handleSubmit}
-                disabled={formLoading}
-              >
-                {formLoading && (
-                  <LoaderCircle size={18} className="animate-spin mr-2" />
-                )}
-                Submit
-              </Button>
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold">All Courses</h1>
-        <Button onClick={() => setOpen(true)}>
-          <Plus size={18} className="mr-2" /> Course
+    <div className="w-full max-w-7xl mx-auto px-4 py-6 space-y-6">
+      {/* ===== HEADER ===== */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+          Courses
+        </h1>
+        <Button
+          onClick={() => setOpen(true)}
+          className="bg-black text-white hover:bg-gray-900"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          New Course
         </Button>
       </div>
 
-      <ScrollArea className="border rounded-lg">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="p-3 border-b">Title</th>
-              <th className="p-3 border-b">Teacher</th>
-              <th className="p-3 border-b">Education</th>
-              <th className="p-3 border-b">Grade</th>
-              <th className="p-3 border-b">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {courses.map((c) => (
-              <tr key={c._id}>
-                <td className="p-3 border-b">{c.title}</td>
-                <td className="p-3 border-b">{c.teacherName}</td>
-                <td className="p-3 border-b">{c.education}</td>
-                <td className="p-3 border-b">{c.grade}</td>
-                <td className="p-3 border-b">EGP {c.price.toFixed(2)}</td>
+      {/* ===== COURSES TABLE ===== */}
+      <div className="border rounded-lg overflow-hidden">
+        <ScrollArea>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 text-left">
+              <tr>
+                <th className="p-3">Title</th>
+                <th className="p-3 hidden md:table-cell">Teacher</th>
+                <th className="p-3 hidden md:table-cell">Education</th>
+                <th className="p-3">Grade</th>
+                <th className="p-3 text-right">Price</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </ScrollArea>
+            </thead>
+            <tbody>
+              {courses.map((c) => (
+                <tr
+                  key={c._id}
+                  className="border-t hover:bg-gray-50 transition"
+                >
+                  <td className="p-3 font-medium">{c.title}</td>
+                  <td className="p-3 hidden md:table-cell">{c.teacherName}</td>
+                  <td className="p-3 hidden md:table-cell">{c.education}</td>
+                  <td className="p-3">{c.grade}</td>
+                  <td className="p-3 text-right">EGP {c.price.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ScrollArea>
+      </div>
+
+      {/* ===== CREATE COURSE MODAL ===== */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="text-xl font-semibold">
+              Create Course
+            </DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[75vh]">
+            <div className="px-6 py-6 space-y-10">
+              {/* ===== BASIC INFO ===== */}
+              <section className="space-y-4">
+                <button
+                  onClick={() => setExpandBasic(!ExpandBasic)}
+                  className="flex cursor-pointer items-center gap-2 text-lg font-semibold"
+                >
+                  Basic Information
+                  {ExpandBasic ? (
+                    <ChevronDown size={20} />
+                  ) : (
+                    <ChevronRight size={20} />
+                  )}
+                </button>
+
+                {ExpandBasic && (
+                  <div className="space-y-4">
+                    <input
+                      className="w-full border rounded-md px-3 py-2"
+                      placeholder="Course title"
+                      value={form.title}
+                      onChange={(e) =>
+                        setForm({ ...form, title: e.target.value })
+                      }
+                    />
+
+                    <textarea
+                      className="w-full border rounded-md px-3 py-2 min-h-25"
+                      placeholder="Course description"
+                      value={form.description}
+                      onChange={(e) =>
+                        setForm({ ...form, description: e.target.value })
+                      }
+                    />
+
+                    <select
+                      className="w-full border rounded-md px-3 py-2"
+                      value={form.teacher}
+                      onChange={(e) =>
+                        setForm({ ...form, teacher: e.target.value })
+                      }
+                    >
+                      <option value="">Select teacher</option>
+                      {teachers.map((t) => (
+                        <option key={t._id} value={t._id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input
+                        type="number"
+                        className="border rounded-md px-3 py-2"
+                        placeholder="Price"
+                        value={form.price}
+                        onChange={(e) =>
+                          setForm({ ...form, price: Number(e.target.value) })
+                        }
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setImage(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <button
+                onClick={() => setExpandContent(!ExpandContent)}
+                className="flex cursor-pointer items-center gap-2 text-lg font-semibold"
+              >
+                Add Content
+                {ExpandContent ? (
+                  <ChevronDown size={20} />
+                ) : (
+                  <ChevronRight size={20} />
+                )}
+              </button>
+
+              {ExpandContent ? (
+                <div className="flex items-start flex-col gap-y-4 w-full">
+                  <section className="space-y-4 w-full">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">Videos</h2>
+                      <Button variant="outline" onClick={addVideo}>
+                        + Add Video
+                      </Button>
+                    </div>
+
+                    {form.videos.map((v, i) => (
+                      <div key={i} className="border rounded-md p-4 space-y-3">
+                        <input
+                          className="w-full border rounded-md px-3 py-2"
+                          placeholder="Video title"
+                          value={v.title}
+                          onChange={(e) => {
+                            const vids = [...form.videos];
+                            vids[i].title = e.target.value;
+                            setForm({ ...form, videos: vids });
+                          }}
+                        />
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => {
+                            const vids = [...form.videos];
+                            vids[i].file = e.target.files?.[0];
+                            setForm({ ...form, videos: vids });
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </section>
+
+                  {/* ===== PDFs ===== */}
+                  <section className="space-y-4 w-full">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">PDFs</h2>
+                      <Button variant="outline" onClick={addPDF}>
+                        + Add PDF
+                      </Button>
+                    </div>
+
+                    {form.pdfs.map((p, i) => (
+                      <div key={i} className="border rounded-md p-4 space-y-3">
+                        <input
+                          className="w-full border rounded-md px-3 py-2"
+                          placeholder="PDF title"
+                          value={p.title}
+                          onChange={(e) => {
+                            const pdfs = [...form.pdfs];
+                            pdfs[i].title = e.target.value;
+                            setForm({ ...form, pdfs });
+                          }}
+                        />
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => {
+                            const pdfs = [...form.pdfs];
+                            pdfs[i].file = e.target.files?.[0];
+                            setForm({ ...form, pdfs });
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </section>
+
+                  {/* ===== QUIZZES ===== */}
+                  <section className="space-y-4 w-full">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">Quizzes</h2>
+                      <Button variant="outline" onClick={addQuiz}>
+                        + Add Quiz
+                      </Button>
+                    </div>
+
+                    {form.quizzes.map((q, qi) => (
+                      <div key={qi} className="border rounded-md p-4 space-y-4">
+                        <input
+                          className="w-full border rounded-md px-3 py-2"
+                          placeholder="Quiz title"
+                          value={q.title}
+                          onChange={(e) => {
+                            const quizzes = [...form.quizzes];
+                            quizzes[qi].title = e.target.value;
+                            setForm({ ...form, quizzes });
+                          }}
+                        />
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addQuestion(qi)}
+                        >
+                          + Add Question
+                        </Button>
+                      </div>
+                    ))}
+                  </section>
+                </div>
+              ) : null}
+              {/* ===== VIDEOS ===== */}
+            </div>
+          </ScrollArea>
+
+          {/* ===== STICKY FOOTER ===== */}
+          <div className="border-t px-6 py-4 flex justify-end">
+            <Button
+              onClick={handleSubmit}
+              disabled={formLoading}
+              className="bg-black text-white hover:bg-gray-900"
+            >
+              {formLoading && (
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Create Course
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

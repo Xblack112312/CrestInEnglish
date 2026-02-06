@@ -15,12 +15,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import Image from "next/image";
+import { useLang } from "@/context/LanguageContext";
 
 const Navbar = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
 
   const [mounted, setMounted] = useState(false);
+  const { switchLang, lang } = useLang();
 
   useEffect(() => {
     setMounted(true);
@@ -36,11 +47,9 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-30 h-16 px-10 flex items-center justify-between bg-gray-50/90">
+    <nav className="fixed top-0 left-0 right-0 z-30 py-6 h-16 px-10 flex items-center justify-between bg-gray-50/90">
       <Link href="/">
-        <h1 className="text-[24px] font-semibold text-[#1E1E24]">
-          CrestInEnglish.
-        </h1>
+        <h1 className="text-2xl font-semibold ">Crest In English.</h1>
       </Link>
 
       {status === "unauthenticated" ? (
@@ -59,39 +68,49 @@ const Navbar = () => {
           </button>
         </div>
       ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Avatar className="w-10 h-10 cursor-pointer">
-              <AvatarFallback className=" bg-black! text-white! text-lg uppercase">
-                {getInitials(session?.user?.fullName)}
-              </AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
+        <div className="flex items-center gap-2 flex-row">
+          {lang === "en" ? (
+            <button onClick={() => switchLang("ar")}>Arabic</button>
+          ) : (
+            <button onClick={() => switchLang("en")}>English</button>
+          )}
 
-          <DropdownMenuContent className="w-72 mx-5">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => router.replace("/")}>
-                Home
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.replace("/profile")}>
-                Profile
-              </DropdownMenuItem>
-              {session?.user?.role === "admin" ? (
-                <DropdownMenuItem onClick={() => router.replace("/dashboard")}>
-                  Admin
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="w-10 h-10 cursor-pointer">
+                <AvatarFallback className=" bg-black! text-white! text-lg uppercase">
+                  {getInitials(session?.user?.fullName)}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent className="w-72 mx-5">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => router.replace("/")}>
+                  Home
                 </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem>Courses</DropdownMenuItem>
-            </DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => router.replace("/profile")}>
+                  Profile
+                </DropdownMenuItem>
+                {session?.user?.role === "admin" ? (
+                  <DropdownMenuItem
+                    onClick={() => router.replace("/dashboard")}
+                  >
+                    Admin
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem>Courses</DropdownMenuItem>
+              </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={() => signOut()}>
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={() => signOut()}>
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       )}
     </nav>
   );

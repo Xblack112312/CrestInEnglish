@@ -53,6 +53,8 @@ const Page = () => {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [file, setFile] = useState<File | null>(null);
+
   /* ---------------- GET ALL ---------------- */
   const getAllTeachers = async () => {
     try {
@@ -69,7 +71,6 @@ const Page = () => {
     getAllTeachers();
   }, []);
 
-  /* ---------------- CREATE / UPDATE ---------------- */
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -79,19 +80,31 @@ const Page = () => {
         return;
       }
 
-      const url = editingTeacher
-        ? "/api/teachers/update"
-        : "/api/teachers/create";
+      if (!editingTeacher && !file) {
+        toast.error("Avatar is required");
+        return;
+      }
 
-      const body = editingTeacher
-        ? { id: editingTeacher._id, name, jobtitle, description }
-        : { name, jobtitle, description };
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("jobtitle", jobtitle);
+      formData.append("description", description);
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      if (file) {
+        formData.append("file", file);
+      }
+
+      if (editingTeacher) {
+        formData.append("id", editingTeacher._id);
+      }
+
+      const res = await fetch(
+        editingTeacher ? "/api/teachers/update" : "/api/teachers/create",
+        {
+          method: "POST",
+          body: formData, // ❗ no headers
+        },
+      );
 
       const data = await res.json();
       if (!data.success) throw data.message;
@@ -161,12 +174,21 @@ const Page = () => {
             onChange={(e) => setName(e.target.value)}
             className="border p-2 rounded"
           />
+
           <input
             placeholder="Job Title"
             value={jobtitle}
             onChange={(e) => setJobtitle(e.target.value)}
             className="border p-2 rounded"
           />
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="border p-2 rounded"
+          />
+
           <textarea
             placeholder="Description"
             value={description}

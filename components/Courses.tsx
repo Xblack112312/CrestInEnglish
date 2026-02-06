@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { BookOpen, Play, GraduationCap, School } from "lucide-react";
+import { useLang } from "@/context/LanguageContext";
 
 interface Course {
   _id: string;
@@ -47,20 +48,18 @@ const Courses = () => {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     fetchCourses();
   }, []);
 
-    useEffect(() => {
-      console.log(courses);
-    }, [courses])
+  const { t } = useLang();
 
   return (
     <section className="flex px-6 md:px-12 py-12 flex-col items-start w-full">
       <div className="flex items-center justify-between w-full mb-8">
-        <h3 className="text-2xl font-medium text-black">English Courses</h3>
+        <h3 className="text-2xl font-medium text-black">{t("englishcourse")}</h3>
       </div>
-      
+
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {[1, 2, 3].map((i) => (
@@ -79,7 +78,7 @@ const Courses = () => {
       ) : courses.length === 0 ? (
         <div className="w-full text-center py-12">
           <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">No courses available yet</p>
+          <p className="text-gray-500">{t("ncay")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
