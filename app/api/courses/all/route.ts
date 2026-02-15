@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import ConnectToDatabase from "@/lib/database";
 import Course from "@/models/Course";
 import { NextResponse } from "next/server";

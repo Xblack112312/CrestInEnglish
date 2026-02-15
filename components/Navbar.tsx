@@ -48,33 +48,34 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-30 py-6 h-16 px-10 flex items-center justify-between bg-gray-50/90">
-      <Link href="/">
-        <h1 className="text-2xl font-semibold ">Crest In English.</h1>
-      </Link>
+      <div className="flex items-center flex-row gap-3">
+        <Link href="/">
+          <h1 className="text-2xl font-semibold ">Crest In English.</h1>
+        </Link>
+        {lang === "en" ? (
+          <button onClick={() => switchLang("ar")}>Arabic</button>
+        ) : (
+          <button onClick={() => switchLang("en")}>English</button>
+        )}
+      </div>
 
       {status === "unauthenticated" ? (
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.replace("/sign-in")}
-            className="underline"
+            className="underline cursor-pointer transition-all ease-linear text-black hover:text-black/70"
           >
             Log In
           </button>
           <button
             onClick={() => router.replace("/sign-up")}
-            className="bg-black text-white p-3 rounded-md"
+            className="bg-black text-white p-3 transition-all ease-linear rounded-md hover:bg-black/70!"
           >
             Get Started
           </button>
         </div>
       ) : (
         <div className="flex items-center gap-2 flex-row">
-          {lang === "en" ? (
-            <button onClick={() => switchLang("ar")}>Arabic</button>
-          ) : (
-            <button onClick={() => switchLang("en")}>English</button>
-          )}
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="w-10 h-10 cursor-pointer">
@@ -100,7 +101,6 @@ const Navbar = () => {
                     Admin
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem>Courses</DropdownMenuItem>
               </DropdownMenuGroup>
 
               <DropdownMenuSeparator />

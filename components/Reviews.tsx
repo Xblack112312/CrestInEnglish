@@ -42,7 +42,7 @@ const StudentReviews = () => {
         {reviews.map((item) => (
           <div
             key={item.name}
-            className="w-80 p-5 rounded-xl bg-white border border-zinc-200"
+            className="w-80 transition-all ease-in-out  duration-200 hover:scale-110 p-5 rounded-xl bg-white border border-zinc-200"
           >
             <div className="flex items-center gap-3 mb-3">
               <div>

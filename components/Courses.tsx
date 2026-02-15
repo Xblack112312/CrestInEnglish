@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { BookOpen, Play, GraduationCap, School } from "lucide-react";
 import { useLang } from "@/context/LanguageContext";
+import { motion, type Variants, cubicBezier } from "framer-motion";
 
 interface Course {
   _id: string;
@@ -25,24 +26,58 @@ interface Course {
   isPublished: boolean;
 }
 
+const easeOut = cubicBezier(0.22, 1, 0.36, 1);
+
+const containerVariants: Variants = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.06,
+    },
+  },
+};
+
+const titleVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: easeOut },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: easeOut },
+  },
+};
+
 const Courses = () => {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLang();
 
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/courses/all");
+      const response = await fetch("/api/courses/all", { cache: "no-store" });
       const data = await response.json();
 
       if (data?.success) {
-        setCourses(data?.allcourses || []);
+        setCourses(Array.isArray(data?.allcourses) ? data.allcourses : []);
       } else {
-        console.error("Failed to fetch courses:", data.message);
+        console.error("Failed to fetch courses:", data?.message);
+        setCourses([]);
       }
-    } catch (error) {
-      console.error("Error fetching courses:", error);
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -52,12 +87,17 @@ const Courses = () => {
     fetchCourses();
   }, []);
 
-  const { t } = useLang();
-
   return (
     <section className="flex px-6 md:px-12 py-12 flex-col items-start w-full">
       <div className="flex items-center justify-between w-full mb-8">
-        <h3 className="text-2xl font-medium text-black">{t("englishcourse")}</h3>
+        <motion.h3
+          className="text-2xl font-medium text-black"
+          variants={titleVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {t("englishcourse")}
+        </motion.h3>
       </div>
 
       {loading ? (
@@ -81,11 +121,20 @@ const Courses = () => {
           <p className="text-gray-500">{t("ncay")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
           {courses.map((course) => (
-            <article
+            <motion.article
               key={course._id}
-              className="w-full overflow-hidden rounded-xl bg-white border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              variants={itemVariants}
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.99 }}
+              transition={{ duration: 0.2, ease: easeOut }}
+              className="w-full overflow-hidden rounded-xl bg-white border shadow-sm cursor-pointer transition hover:shadow-md"
               onClick={() => router.push(`/courses/${course._id}`)}
             >
               {/* Course Image */}
@@ -96,7 +145,6 @@ const Courses = () => {
                     alt={course.title}
                     fill
                     className="object-cover"
-                    priority={false}
                   />
                 ) : (
                   <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -107,14 +155,14 @@ const Courses = () => {
 
               {/* Content */}
               <div className="flex flex-col gap-3 p-4">
-                <h3 className="text-lg font-semibold leading-snug text-neutral-900 line-clamp-2">
+                <h3 className="text-lg font-semibold text-neutral-900 line-clamp-2">
                   {course.title}
                 </h3>
+
                 <p className="text-sm text-neutral-600 line-clamp-2">
                   {course.description}
                 </p>
 
-                {/* Course Info */}
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <GraduationCap className="h-3 w-3" />
                   <span>{course.grade}</span>
@@ -122,7 +170,6 @@ const Courses = () => {
                   <span>{course.education}</span>
                 </div>
 
-                {/* Instructor */}
                 <div className="flex items-center gap-3 pt-2 border-t">
                   {course.teacher?.avatar && (
                     <Image
@@ -141,14 +188,12 @@ const Courses = () => {
                       {course.teacher?.job || "Course Instructor"}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-neutral-900">
-                      {course.price} EGP
-                    </p>
-                  </div>
+
+                  <p className="text-sm font-bold text-neutral-900">
+                    {course.price} EGP
+                  </p>
                 </div>
 
-                {/* View Button */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -162,20 +207,9 @@ const Courses = () => {
                   View Course
                 </Button>
               </div>
-            </article>
+            </motion.article>
           ))}
-        </div>
-      )}
-
-      {/* View All Button for Mobile */}
-      {courses.length > 0 && (
-        <Button
-          variant="outline"
-          onClick={() => router.push("/courses")}
-          className="w-full sm:hidden mt-6"
-        >
-          View All Courses
-        </Button>
+        </motion.div>
       )}
     </section>
   );

@@ -1,6 +1,9 @@
+import LinearLoginCodeEmail from "@/emails/NewPhurase";
+import NikeReceiptEmail from "@/emails/ReceiptEmail";
 import { authOptions } from "@/lib/auth";
 import cloudinary from "@/lib/cloudinary";
 import ConnectToDatabase from "@/lib/database";
+import { resend } from "@/lib/email";
 import Enrollment from "@/models/Enrollment";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -16,7 +19,6 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-
 
     const formData = await request.formData();
 
@@ -44,6 +46,8 @@ export async function POST(request: Request) {
         .end(buffer);
     });
 
+    const email = session?.user?.email as string;
+
     const enrollment = await Enrollment.create({
       user: session?.user?.id,
       course: courseId,
@@ -51,6 +55,34 @@ export async function POST(request: Request) {
       paymentProof: uploadResult.secure_url,
       status: "pending",
       userId: session?.user?.id,
+    });
+
+    const randomText = Math.random();
+
+    const orderId = enrollment?._id
+      ? enrollment._id.toString()
+      : String(randomText);
+    const orderdate = enrollment?.createdAt
+      ? new Date(enrollment.createdAt).toISOString()
+      : new Date().toISOString();
+
+    await resend.emails.send({
+      from: "CrestSupport <no-reply@crestinenglish.online>",
+      to: email,
+      subject: "Thank you for your enrollation from crest in english.",
+      react: NikeReceiptEmail({
+        orderId, // string
+        orderdate, // string
+      }),
+    });
+
+    await resend.emails.send({
+      from: "CrestSupport <no-reply@crestinenglish.online>",
+      to: ["moabedd05@gmail.com"],
+      subject: "[#] New Enrollment from crest in english, Please Take Action.",
+      react: LinearLoginCodeEmail({
+        validationCode: orderId, // string (NOT ObjectId)
+      }),
     });
 
     return NextResponse.json(
